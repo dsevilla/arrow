@@ -72,9 +72,16 @@ cdef class HadoopFileSystem(FileSystem):
             CHdfsOptions options
             shared_ptr[CHadoopFileSystem] wrapped
 
-        if not host.startswith(('hdfs://', 'viewfs://')) and host != "default":
+        if not host.startswith(('hdfs://', 'viewfs://')):
             # TODO(kszucs): do more sanitization
             host = f'hdfs://{host}'
+
+        # This is needed to correctly fix #25324 wrt. from_uri:
+        # - The higher level (from_uri) requires the URI to start with 'hdfs://'.
+        # - The lower level (the library) needs the host to be 'default'
+        #   to infer from core-site.xml.
+        if host == 'hdfs://default':
+            host = 'default'
 
         options.ConfigureEndPoint(tobytes(host), int(port))
         options.ConfigureReplication(replication)
